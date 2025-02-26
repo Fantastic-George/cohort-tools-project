@@ -17,7 +17,10 @@ mongoose
   .then(() => {
     console.log("Connected to MongoDB");
   })
-  .catch((err) => console.error("Error connecting to MongoDB:", err));
+  .catch((err) => {
+    console.error("Error connecting to MongoDB:", err);
+    process.exit(1);  // Exit if we can't connect to database
+  });
 
 // STATIC DATA
 // Devs Team - Import the provided files with JSON data of students and cohorts here:
@@ -55,31 +58,154 @@ app.get("/client", (req, res) => {
   res.sendFile(__dirname + "/views/docs.html");
 });
 
+//Student routes
+
+app.post('/api/students', (req, res) => {
+  Student.create({
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    email: req.body.email,
+    phone: req.body.phone,
+    linkedinUrl: req.body.linkedinUrl,
+    languages: req.body.languages,
+    program: req.body.program,
+  })
+  .then(student => {
+    res.status(201).json(student);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error creating student', error: err });
+  });
+});
+
 app.get('/api/students', (req, res) => {
-  mongoose.connection.db.collection('students').find({}).toArray()
+  Student.find()
+    .populate('cohort')
     .then(students => {
-      console.log('Students found:', students.length);
-      res.json(students);
+      res.status(200).json(students);
     })
     .catch(err => {
-      console.error('Error fetching students:', err);
       res.status(500).json({ message: 'Error fetching students', error: err });
     });
 });
 
-app.get('/api/cohorts', (req, res) => {
-  mongoose.connection.db.collection('cohorts').find({}).toArray()
-    .then(cohorts => {
-      console.log('Cohorts found:', cohorts.length);
-      res.json(cohorts);
+app.get('/api/students/cohort/:cohortId', (req, res) => {
+  Student.find({ cohort: req.params.cohortId })
+    .populate('cohort')
+    .then(students => {
+      res.status(200).json(students);
     })
     .catch(err => {
-      console.error('Error fetching cohorts:', err);
-      res.status(500).json({ message: 'Error fetching cohorts', error: err });
+      res.status(500).json({ message: 'Error fetching students', error: err });
     });
 });
 
-// Add debug routes to directly query MongoDB
+app.get('/api/students/:studentId', (req, res) => {
+  Student.findById(req.params.studentId)
+    .populate('cohort')
+    .then(student => {
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+      res.status(200).json(student);
+    })
+    .catch(err => { 
+      res.status(500).json({ message: 'Error fetching student', error: err });
+    });
+});
+
+app.put('/api/students/:studentId', (req, res) => {
+  Student.findByIdAndUpdate(req.params.studentId, req.body, { new: true })
+  .then(student => {
+    res.status(201).json(student);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error updating student', error: err });
+  });
+});
+
+app.delete('/api/students/:studentId', (req, res) => {
+  Student.findByIdAndDelete(req.params.studentId)
+  .then(student => {
+    res.status(201).json(student);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error deleting student', error: err });
+  });
+});
+
+
+//Cohort routes
+
+app.post('/api/cohorts', (req, res) => {
+  Cohort.create({
+    cohortSlug: req.body.cohortSlug,
+    cohortName: req.body.cohortName,
+    program: req.body.program,
+    format: req.body.format,
+    campus: req.body.campus,
+    startDate: req.body.startDate,
+    endDate: req.body.endDate,
+    inProgress: req.body.inProgress,
+    programManager: req.body.programManager,
+    leadTeacher: req.body.leadTeacher,
+    totalHours: req.body.totalHours,
+  })
+  .then(cohort => {
+    res.status(201).json(cohort);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error creating cohort', error: err });
+  });
+});
+
+app.get('/api/cohorts', (req, res) => {
+  Cohort.find()
+  .then(cohorts => {
+    res.status(200).json(cohorts);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error fetching cohorts', error: err });
+  });
+});
+
+app.get('/api/cohorts/:cohortId', (req, res) => {
+  Cohort.findById(req.params.cohortId)
+  .then(cohort => {
+    if (!cohort) {
+      return res.status(404).json({ message: 'Cohort not found' });
+    }
+    res.status(200).json(cohort);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error fetching cohort', error: err });
+  });
+});
+
+app.put('/api/cohorts/:cohortId', (req, res) => {
+  Cohort.findByIdAndUpdate(req.params.cohortId, req.body, { new: true })
+  .then(cohort => {
+    res.status(201).json(cohort);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error updating cohort', error: err });
+  });
+});
+
+app.delete('/api/cohorts/:cohortId', (req, res) => {
+  Cohort.findByIdAndDelete(req.params.cohortId)
+  .then(cohort => {
+    res.status(201).json(cohort);
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Error deleting cohort', error: err });
+  });
+});
+
+
+
+//Debug routes
+
 app.get('/api/debug/students', (req, res) => {
   mongoose.connection.db.collection('students').find({}).toArray()
     .then(students => {
@@ -103,6 +229,18 @@ app.get('/api/debug/cohorts', (req, res) => {
       res.status(500).json({ message: 'Error fetching raw cohorts', error: err });
     });
 });
+
+// Error handling middleware
+const errorHandler = (err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : {}
+  });
+};
+
+// Add error handling middleware last
+app.use(errorHandler);
 
 // START SERVER
 app.listen(PORT, () => {
