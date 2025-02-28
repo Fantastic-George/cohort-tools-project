@@ -1,3 +1,6 @@
+// Load environment variables
+require("dotenv").config();
+
 const express = require("express");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
@@ -5,6 +8,9 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const Student = require("./models/student.model");
 const Cohort = require("./models/cohort.model");
+
+// Import auth routes
+const authRoutes = require("./routes/auth.routes");
 
 const PORT = process.env.PORT || 5005;
 
@@ -41,6 +47,8 @@ app.use(express.static("public"));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Mount auth routes
+app.use("/auth", authRoutes);
 
 // ROUTES - https://expressjs.com/en/starter/basic-routing.html
 // Devs Team - Start working on the routes here:
