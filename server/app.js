@@ -250,7 +250,7 @@ const errorHandler = (err, req, res, next) => {
 // Add error handling middleware last
 app.use(errorHandler);
 
-// START SERVER
+// Start the server
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

@@ -42,12 +42,10 @@ const cohortSchema = new Schema({
    programManager: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true,
    },
    leadTeacher: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true,
    },
    totalHours: {
     type: Number,
